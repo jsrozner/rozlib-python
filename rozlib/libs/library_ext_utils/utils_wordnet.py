@@ -1,7 +1,30 @@
-from typing import Optional
+from typing import Optional, List
 
 from nltk.corpus.reader import Lemma
+from nltk.corpus import wordnet as wn
 
+def get_word_pos(word: str) -> List[str]:
+    """
+    Retrieve all potential parts of speech for a given word using WordNet.
+
+    Args:
+        word (str): The word to lookup.
+    """
+    # pos_list = {
+    #     'n': 'noun',
+    #     'v': 'verb',
+    #     'a': 'adjective',
+    #     's': 'adjective (satellite)',
+    #     'r': 'adverb',
+    # }
+    pos_types = ['n', 'v', 'a', 's', 'r']
+
+    all_pos = [s.pos() for s in wn.synsets(word)]
+    for p in all_pos:
+        if not p in pos_types:
+            print(f"invalid pos: {p}")
+
+    return list(set(all_pos))
 
 
 def lemma_to_string(x: Lemma) -> str:

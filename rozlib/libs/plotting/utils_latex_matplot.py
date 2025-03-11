@@ -5,13 +5,10 @@ from pathlib import Path
 import matplotlib
 from matplotlib.figure import Figure
 
-current_file_dir = os.path.dirname(os.path.abspath(__file__))
-# figs_dir = Path(current_file_dir) /  "../supplemental/figs"
-# todo: remove
-figs_dir = Path("/Users/jsrozner/docs_local/research/projects/research_constructions/constructions_repo/proj/cxs_are_revealed/supplemental/figs")
 
 def save_fig(
         fig: Figure,
+        figs_dir: Path,
         filename: str,
         transparent_bg = False
 ):
@@ -64,10 +61,11 @@ class FigSaver:
     """
     Tiny helper class to increment fig save count, so that figs can be saved without needing to name them.
     """
-    def __init__(self):
+    def __init__(self, figs_dir: Path):
+        self.figs_dir = figs_dir
         self.ct = 0
 
     def save(self, fig):
         # todo: check if path already exists or at least warn
-        save_fig(fig, f"f_{self.ct}.png", transparent_bg=True)
+        save_fig(fig, self.figs_dir, f"f_{self.ct}.png", transparent_bg=True)
         self.ct += 1
