@@ -99,4 +99,57 @@ def split_and_remove_punct(input: str) -> List[str]:
     # todo: check that any internal punct is only one
     return final_list
 
+def count_word_occurrences(text: str, word: str) -> int:
+    """
+    Count the occurrences of a specific word in a text using regex.
 
+    Args:
+        text (str): The input string to search.
+        word (str): The word to count.
+
+    Returns:
+        int: The number of times the word appears in the text.
+    """
+    pattern = rf"\b{re.escape(word)}\b"  # Match whole word, escaping special chars
+    matches = re.findall(pattern, text, flags=re.IGNORECASE)  # Case insensitive
+    return len(matches)
+
+def get_nth_occ_string(input: str, tgt: str, nth: int) -> int:
+    """
+    Returns the index of the nth occurrence of tgt in the input string.
+    Raises if (nth) occurrences of tgt are not found
+
+    nth: 1-indexed
+    """
+    if nth <= 0:
+        raise Exception("nth must be greater than 0 (it is 1 indexed)")
+
+    ct = 0
+    found_idx = -1  # search starts at found_idx + 1
+    while ct < nth:
+        # will raise if not found
+        found_idx = input.find(tgt, found_idx + 1)
+        assert found_idx >= 0, f"not found"
+        ct += 1
+
+    return found_idx
+
+
+def get_nth_occ_list(input_list: List[str], tgt: str, nth: int) -> int:
+    """
+    Returns the index of the nth occurrence of tgt in the input_list.
+    Raises if (nth) occurrences of tgt are not found
+
+    nth: 1-indexed
+    """
+    if nth <= 0:
+        raise Exception("nth must be greater than 0 (it is 1 indexed)")
+
+    ct = 0
+    found_idx = -1  # search starts at found_idx + 1
+    while ct < nth:
+        found_idx = input_list.index(tgt, found_idx + 1)
+        assert found_idx >= 0, f"not found"
+        ct += 1
+
+    return found_idx

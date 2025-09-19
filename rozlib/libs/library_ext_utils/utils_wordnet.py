@@ -1,9 +1,22 @@
 from typing import Optional, List
 
-from nltk.corpus.reader import Lemma
+from nltk import WordNetLemmatizer
+from nltk.corpus.reader import Lemma, Synset
 from nltk.corpus import wordnet as wn
 
-def get_word_pos(word: str) -> List[str]:
+def synsets_for_word(word: str,
+                     case_sensitive=True) -> List[Synset]:
+    if not case_sensitive:
+        word = word.lower()
+    return [
+        syn for syn in wn.synsets(word)
+        if word in syn.lemma_names()
+    ]
+
+def get_word_pos(
+        word: str,
+        case_sensitive = True
+) -> List[str]:
     """
     Retrieve all potential parts of speech for a given word using WordNet.
 
@@ -19,11 +32,13 @@ def get_word_pos(word: str) -> List[str]:
     # }
     pos_types = ['n', 'v', 'a', 's', 'r']
 
-    all_pos = [s.pos() for s in wn.synsets(word)]
+    syns: List[Synset] = synsets_for_word(word, case_sensitive=case_sensitive)
+    # all_pos = [s.pos() for s in wn.synsets(word)]
+    # todo: check typing
+    all_pos: List[str] = [s.pos() for s in syns]
     for p in all_pos:
         if not p in pos_types:
             print(f"invalid pos: {p}")
-
     return list(set(all_pos))
 
 
@@ -57,3 +72,22 @@ def spacy_to_wordnet_pos(spacy_pos: str) -> Optional[str]:
     #     return wn.ADV   # 'r'
     else:
         return None  # No corresponding POS in WordNet
+
+def is_plural(word: str) -> bool:
+    """
+    Determine if a noun is plural using WordNet.
+
+    Args:
+        word (str): The input word.
+
+    Returns:
+        bool: True if the word is plural, False otherwise.
+    """
+    lemmatizer = WordNetLemmatizer()
+    lemma = lemmatizer.lemmatize(word, pos="n")  # Lemmatize as a noun
+
+    # Check if the lemmatized form is different and both exist in WordNet
+    if lemma != word and wn.synsets(lemma, pos=wn.NOUN):
+        return True  # The word is plural
+    return False  # The word is singular or not found
+

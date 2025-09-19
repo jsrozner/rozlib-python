@@ -12,7 +12,8 @@ def make_timestamp_str():
 
 def setup_logging(
         logs_output_dir: Path,
-        write_print_to_log=False
+        write_print_to_log=False,
+        loglevel = logging.INFO
 ):
     print(f"Setting up logging in {logs_output_dir}")
     if not os.path.exists(logs_output_dir):
@@ -23,7 +24,7 @@ def setup_logging(
 
     timestamp = make_timestamp_str()
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=loglevel,
         format=
             '%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d \n %(message)s',
         handlers=[

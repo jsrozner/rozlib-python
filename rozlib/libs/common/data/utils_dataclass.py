@@ -3,6 +3,7 @@ import difflib
 import json
 import os
 from pathlib import Path
+from pprint import pp
 from typing import Type, Dict, Any, TypeVar, List, Union
 import dataclasses
 from dataclasses import fields, MISSING
@@ -24,11 +25,17 @@ def from_dict(cls: Type[T], dict_obj: Dict[str, Any]) -> T:
     """
     # try:
     fieldtypes = {f.name: f.type for f in fields(cls)}
-    return (
-        cls(**{f: from_dict(fieldtypes[f], dict_obj[f])
-        if isinstance(dict_obj[f], dict)
-        else dict_obj[f]
-               for f in dict_obj}))
+    try:
+        return (
+            cls(**{f: from_dict(fieldtypes[f], dict_obj[f])
+            if isinstance(dict_obj[f], dict)
+            else dict_obj[f]
+                   for f in dict_obj}))
+    except TypeError as e:
+        print(f"While processing to class {cls}:")
+        pp(fieldtypes)
+        pp(dict_obj)
+        raise(e)
     # except TypeError:
     #     return dict_obj
 
@@ -94,7 +101,7 @@ def diff_dataclasses(o1, o2) -> bool:
 
 
 # todo: should parse fields automatically - rename to indicate this function does strings only
-def read_csv_to_dataclass(cls: Type[T], file_path: str) -> List[T]:
+def read_csv_to_dataclass(cls: Type[T], file_path: str | Path) -> List[T]:
     """
     Reads a CSV file and converts its rows into a list of dataclass instances.
 
@@ -107,11 +114,25 @@ def read_csv_to_dataclass(cls: Type[T], file_path: str) -> List[T]:
     """
     # Get field names from the dataclass
     field_names = {f.name for f in fields(cls)}
+    # print(field_names)
 
     # Read from the CSV file
     with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         # Ensure only valid fields are passed to the dataclass
+        # ret_list = []
+        # for row in reader:
+        #     d = {}
+        #     for k,v in row.items():
+        #         if not k in field_names:
+        #             print(f"{k} not in fieldnames")
+        #             continue
+        #         d[k] = v
+        #     c = cls(**d)
+        #     pp(c)
+        #     ret_list.append(c)
+        #
+        # return ret_list
         return [cls(**{k: v for k, v in row.items() if k in field_names}) for row in reader]
 
 def write_dataclass_to_csv(data: List[T], file_path: str) -> None:

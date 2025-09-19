@@ -3,10 +3,11 @@ import matplotlib.colors as mcolors
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Optional
+from typing import Optional, Iterable
 
 from matplotlib import patches
 from matplotlib.figure import Figure
+from matplotlib.patches import PathPatch
 from sklearn.metrics import roc_curve, auc
 
 
@@ -94,6 +95,107 @@ def add_rect_to_grid(
                              facecolor='none')
     ax.add_patch(rect)
 
+def add_bottom_edge_to_grid(
+    ax: matplotlib.axes.Axes,
+    num_segments: int,
+    x_start: int,
+    y_start: int,
+    x_len_incs: int,
+    y_len_incs: int,
+    color,
+    linewidth: float = 2,
+):
+    y_limits = ax.get_ylim()
+    x_limits = ax.get_xlim()
+
+    x_size = x_limits[1] - x_limits[0]
+    y_size = y_limits[1] - y_limits[0]
+
+    inc_x = x_size / num_segments
+    inc_y = y_size / num_segments
+
+    # bottom-left corner
+    x0 = x_limits[0] + x_start * inc_x
+    y0 = y_limits[0] + y_start * inc_y
+    # bottom-right corner
+    x1 = x0 + x_len_incs * inc_x
+    y1 = y0  # same y
+
+    # Use a simple line segment as a patch
+    line = patches.FancyArrowPatch(
+        (x0, y0), (x1, y1),
+        arrowstyle="-",        # plain line
+        color=color,
+        linewidth=linewidth,
+        mutation_scale=0,      # no arrow head
+    )
+    ax.add_patch(line)
+
+from matplotlib.path import Path
+
+
+
+# def add_edges_to_grid(
+#     ax: matplotlib.axes.Axes,
+#     num_segments: int,
+#     x_start: int,
+#     y_start: int,
+#     x_len_incs: int,
+#     y_len_incs: int,
+#     color: str | tuple[float, float, float] | tuple[float, float, float, float],
+#     linewidth: float = 2.0,
+#     sides: Iterable[str] = ("bottom", "left"),
+# ) -> PathPatch:
+#     """
+#     Draw selected edges of the rectangle cell-block defined on a num_segments x num_segments grid.
+#
+#     sides: any of {"bottom", "top", "left", "right"}.
+#            Default draws bottom and left.
+#     """
+#     y_limits = ax.get_ylim()
+#     x_limits = ax.get_xlim()
+#
+#     x_size: float = float(x_limits[1] - x_limits[0])
+#     y_size: float = float(y_limits[1] - y_limits[0])
+#
+#     inc_x: float = x_size / num_segments
+#     inc_y: float = y_size / num_segments
+#
+#     # Corners of the target block in data coords
+#     x0: float = x_limits[0] + x_start * inc_x
+#     y0: float = y_limits[0] + y_start * inc_y
+#     x1: float = x0 + x_len_incs * inc_x
+#     y1: float = y0 + y_len_incs * inc_y
+#
+#     # Build a Path consisting of 0–4 independent line segments
+#     verts: list[tuple[float, float]] = []
+#     codes: list[int] = []
+#
+#     want = set(sides)
+#
+#     if "bottom" in want:
+#         verts.extend([(x0, y0), (x1, y0)])
+#         codes.extend([Path.MOVETO, Path.LINETO])
+#
+#     if "left" in want:
+#         verts.extend([(x0, y0), (x0, y1)])
+#         codes.extend([Path.MOVETO, Path.LINETO])
+#
+#     if "top" in want:
+#         verts.extend([(x0, y1), (x1, y1)])
+#         codes.extend([Path.MOVETO, Path.LINETO])
+#
+#     if "right" in want:
+#         verts.extend([(x1, y0), (x1, y1)])
+#         codes.extend([Path.MOVETO, Path.LINETO])
+#
+#     path = Path(verts, codes)
+#     patch = PathPatch(path, fill=False, edgecolor=color, linewidth=linewidth, capstyle="butt")
+#     ax.add_patch(patch)
+#     return patch
+
+
+
 def add_X_to_plot(
         ax: matplotlib.axes.Axes,
         num_segments_x: int,
@@ -126,6 +228,76 @@ def add_X_to_plot(
     ax.plot((x,x+inc_x), (y+inc_y, y), linewidth=linewidth, color=color)
 
 
+def add_edges_to_grid(
+    ax: matplotlib.axes.Axes,
+    num_segments: int,
+    x_start: int,
+    y_start: int,
+    x_len_incs: int,
+    y_len_incs: int,
+    color: str | tuple[float, float, float] | tuple[float, float, float, float],
+    linewidth: float = 2.0,
+    sides: Iterable[str] = ("bottom", "left"),
+) -> PathPatch:
+    x0, x1, y0, y1 = _rect_coords(ax, num_segments, x_start, y_start, x_len_incs, y_len_incs)
+
+    # If bottom+left (or left+bottom), draw a single connected “L” to avoid a gap.
+    s = set(sides)
+    if s == {"bottom", "left"}:
+        # Draw from bottom-right → bottom-left → top-left
+        verts = [(x1, y0), (x0, y0), (x0, y1)]
+        codes = [Path.MOVETO, Path.LINETO, Path.LINETO]
+    else:
+        # Fall back: independent segments (no shared join)
+        verts, codes = [], []
+        if "bottom" in s:
+            verts += [(x0, y0), (x1, y0)]
+            codes += [Path.MOVETO, Path.LINETO]
+        if "left" in s:
+            verts += [(x0, y0), (x0, y1)]
+            codes += [Path.MOVETO, Path.LINETO]
+        if "top" in s:
+            verts += [(x0, y1), (x1, y1)]
+            codes += [Path.MOVETO, Path.LINETO]
+        if "right" in s:
+            verts += [(x1, y0), (x1, y1)]
+            codes += [Path.MOVETO, Path.LINETO]
+
+    path = Path(verts, codes)
+    patch = PathPatch(
+        path,
+        fill=False,
+        edgecolor=color,
+        linewidth=linewidth,
+        capstyle="projecting",   # square ends
+        joinstyle="miter",       # sharp corner
+        antialiased=True,
+        snap=False,              # set True if you prefer pixel snapping for raster backends
+        zorder=10,
+    )
+    ax.add_patch(patch)
+    return patch
+
+def _rect_coords(
+    ax: matplotlib.axes.Axes,
+    num_segments: int,
+    x_start: int,
+    y_start: int,
+    x_len_incs: int,
+    y_len_incs: int,
+) -> tuple[float, float, float, float]:
+    (x_min, x_max) = ax.get_xlim()
+    (y_min, y_max) = ax.get_ylim()
+    inc_x = (x_max - x_min) / num_segments
+    inc_y = (y_max - y_min) / num_segments
+    x0 = x_min + x_start * inc_x
+    y0 = y_min + y_start * inc_y
+    x1 = x0 + x_len_incs * inc_x
+    y1 = y0 + y_len_incs * inc_y
+    return x0, x1, y0, y1
+
+
+
 def print_color_map_with_hex(cmap):
     # Extract colors from the colormap
     num_colors = cmap.N  # Number of colors in the colormap
@@ -149,5 +321,35 @@ def print_color_map_with_hex(cmap):
     ax.set_title("Dark2 Colormap with HEX Codes", fontsize=12)
 
     # return fig
+
+
+# Create colormap
+def make_custom_cmap(colors: list[str], name: str):
+    cmap = mcolors.LinearSegmentedColormap.from_list(name, colors)
+    return cmap
+
+# https://www.color-hex.com/color-palette/49436
+ibm_colors = [
+    "#ffb000",  # (255,176,0)
+    "#fe6100",  # (254,97,0)
+    "#dc267f",  # (220,38,127)
+    "#785ef0",  # (120,94,240)
+    "#648fff",  # (100,143,255)
+]
+def ibm_cmap():
+    return make_custom_cmap(ibm_colors, "ibm")
+
+ibm_colors2 = [
+    "#D55E00", #	(213,94,0)
+    "#CC79A7",#  	(204,121,167)
+    "#0072B2",#  	(0,114,178)
+    "#F0E442",#  	(240,228,66)
+    "#009E73",#  	(0,158,115)
+]
+
+def ibm_cmap2():
+    return make_custom_cmap(ibm_colors2, "ibm2")
+
+
 
 

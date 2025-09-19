@@ -1,3 +1,4 @@
+import gc
 import logging
 import warnings
 from typing import List
@@ -36,6 +37,14 @@ def get_device(assert_mps_or_gpu=True):
         logging.warning("No GPU found. Using CPU.")
         return torch.device('cpu')
 
+def clear_gpu_cache():
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    if torch.mps.is_available():
+        torch.mps.empty_cache()
+
+
 # todo(low): might not need this; might interact with our other rounding
 # (should round in the dataclass?)
 def round_tensor(tensor: torch.Tensor, decimals: int = 3) -> float | List[float]:
@@ -54,7 +63,7 @@ def torch_fill_diagonal(orig_tensor: torch.Tensor, fill_with: torch.Tensor):
     if len(orig_tensor.shape) != 2:
         raise Exception("Expects orig_tensor of 2D")
     if orig_tensor.shape[0] != orig_tensor.shape[1]:
-        raise Exception("orig tensor is not square")
+        raise Exception(f"orig tensor is not square; shape is {orig_tensor.shape}")
     if fill_with.shape[0] != orig_tensor.shape[0]:
         raise Exception("fill tensor length does not match size of orig_tensor")
     orig_tensor[range(len(fill_with)), range(len(fill_with))] = fill_with

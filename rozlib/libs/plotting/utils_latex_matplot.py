@@ -26,7 +26,7 @@ def save_fig(
     # todo: add pdf if not already
     # todo: create fig dir if not existin
     if not os.path.isdir(figs_dir):
-        raise Exception(f"{figs_dir} does not exist")
+        raise Exception(f"{figs_dir} does not exist (cwd: {os.getcwd()}")
 
     # adjusted_fig = adjust_figure_height(fig, 3.2)
     fig.savefig(figs_dir / filename, bbox_inches="tight", pad_inches=.1, transparent=transparent_bg)
@@ -61,11 +61,16 @@ class FigSaver:
     """
     Tiny helper class to increment fig save count, so that figs can be saved without needing to name them.
     """
-    def __init__(self, figs_dir: Path):
-        self.figs_dir = figs_dir
+    def __init__(self, figs_dir: Path | str):
+        print(f"Initializing fig saver at dir {figs_dir}")
+        if not os.path.isdir(figs_dir):
+            raise Exception(f"{figs_dir} does not exist")
+        self.figs_dir = Path(figs_dir)
         self.ct = 0
 
-    def save(self, fig):
+    def save(self, fig, filename=None):
         # todo: check if path already exists or at least warn
-        save_fig(fig, self.figs_dir, f"f_{self.ct}.png", transparent_bg=True)
+        if filename is None:
+            filename = f"f_{self.ct}.png"
+        save_fig(fig, self.figs_dir, filename, transparent_bg=True)
         self.ct += 1
